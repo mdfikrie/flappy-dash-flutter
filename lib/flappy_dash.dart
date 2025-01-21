@@ -1,12 +1,17 @@
 import 'dart:async';
-import 'dart:ui';
-
+import 'dart:math';
 import 'package:flame/camera.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame/palette.dart';
+import 'package:flappy_dash/components/dash.dart';
+import 'package:flappy_dash/components/dash_parallax_background.dart';
+import 'package:flappy_dash/components/pipe.dart';
+import 'package:flappy_dash/components/pipe_pair.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class FlappyGameDash extends FlameGame<FlappyGameWorld> {
+class FlappyGameDash extends FlameGame<FlappyGameWorld> with KeyboardEvents {
   FlappyGameDash()
       : super(
           world: FlappyGameWorld(),
@@ -15,33 +20,50 @@ class FlappyGameDash extends FlameGame<FlappyGameWorld> {
             height: 1000,
           ),
         );
-}
 
-class FlappyGameWorld extends World {
   @override
-  void onLoad() {
-    add(Dash());
+  KeyEventResult onKeyEvent(
+      KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+    if (keysPressed.contains(LogicalKeyboardKey.space) == true) {
+      world.onSpaceDown();
+    }
+
+    return super.onKeyEvent(event, keysPressed);
   }
 }
 
-class Dash extends PositionComponent {
-  Dash()
-      : super(
-          position: Vector2(0, 0),
-          size: Vector2(20, 20),
-        );
-
+class FlappyGameWorld extends World with TapCallbacks {
+  late Dash _dash;
   @override
-  void render(Canvas canvas) {
-    // TODO: implement render
-    canvas.drawCircle(Offset(0, 0), 20, BasicPalette.blue.paint());
-    super.render(canvas);
+  FutureOr<void> onLoad() async {
+    add(DashParallax());
+    add(_dash = Dash());
+    _generatePipe(fromX: 400, count: 3);
+    return super.onLoad();
+  }
+
+  void _generatePipe({
+    int count = 5,
+    double fromX = 0.0,
+    double distance = 350.0,
+  }) {
+    for (var i = 0; i < count; i++) {
+      double area = 600.0;
+      add(
+        PipePair(
+          position: Vector2(fromX + (i * distance),
+              (Random().nextDouble() * area) - area / 2),
+        ),
+      );
+    }
   }
 
   @override
-  void update(double dt) {
-    position.x += -2;
-    position.y += -2;
-    super.update(dt);
+  void onTapDown(TapDownEvent event) {
+    _dash.jump();
+  }
+
+  void onSpaceDown() {
+    _dash.jump();
   }
 }
